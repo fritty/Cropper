@@ -1,14 +1,17 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
-using UnityEditor;
 using System;
 using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public class FileManager : MonoBehaviour
+using Ookii.Dialogs;
+using System.Windows.Forms;
+using System.Runtime.InteropServices;
+
+public static class FileManager
 {         
     public delegate void TextEvent(string text);
     public static event TextEvent OnSetSource;
@@ -21,8 +24,6 @@ public class FileManager : MonoBehaviour
     static bool _IsInitialized = false;
 
     static readonly List<string> _ImageExtensions = new List<string> { ".JPG", ".JPEG", ".JPE", ".BMP", ".PNG" };
-
-    static FileManager Instance;
     
     static string _SourcePath;
     static string _DestinationPath;
@@ -30,22 +31,16 @@ public class FileManager : MonoBehaviour
     static List<string> _SourceFilePaths;
     static string[] _DestinationFilePaths;
 
-    static Texture _CurrentTexture;
-    static int _CurrentID;
-    
-    
-    //private void Awake()
-    //{
-    //    _IsInitialized = false;
-    //    Instance = this;
-    //    DontDestroyOnLoad(this);
-    //}
+    static int _ImagesAtDestination;
+
+    [DllImport("user32.dll")]
+    static extern IntPtr GetActiveWindow();
 
     public static void SetSource(string path = null)
     {
         if (path == null || path == "")
         {
-            _SourcePath = EditorUtility.OpenFolderPanel("Select Source Folder", "", "");
+            _SourcePath = SelectFolderPath("Select Source Folder");//EditorUtility.OpenFolderPanel("Select Source Folder", "", "");
             OnSetSource?.Invoke(_SourcePath);
         }
         else
@@ -54,14 +49,29 @@ public class FileManager : MonoBehaviour
 
     public static void SetDestination()
     {
-        _DestinationPath = EditorUtility.OpenFolderPanel("Select Destination Folder", "", "");
+        _DestinationPath = SelectFolderPath("Select Destination Folder");//EditorUtility.OpenFolderPanel("Select Destination Folder", "", "");
         OnSetDestination?.Invoke(_DestinationPath);
-    }            
+    }
+
+    static string SelectFolderPath(string title)
+    {
+        var dialog = new VistaFolderBrowserDialog
+        {
+            UseDescriptionForTitle = true,
+            Description = title
+        };
+
+        if (dialog.ShowDialog(new WindowWrapper(GetActiveWindow())) == DialogResult.OK)
+        {
+            return dialog.SelectedPath;
+        }
+        return null;
+    }
 
     public static void InitializeFiles()
     {
         _SourceFilePaths = Directory.GetFiles(_SourcePath).OfType<string>().ToList();
-        //_DestinationFilenames = Directory.GetFiles(_DestinationPath);
+        _ImagesAtDestination = Directory.GetFiles(_DestinationPath).Length;
                 
         int numberOfFiles = NumberOfImages;
         for (int i = 0; i < NumberOfImages;)
@@ -94,32 +104,24 @@ public class FileManager : MonoBehaviour
         return texture;
     }
 
-    //public static void StartLoadingTexture(int id)
-    //{
-    //    _CurrentID = id;
-    //    Instance.StartCoroutine(GetTexture(_SourceFilePaths[id]));
-    //}
+    public static void SaveAsPNG(Texture2D sourceTexture)
+    {            
+        byte[] pngBytes = sourceTexture.EncodeToPNG();
+        File.WriteAllBytes($"{_DestinationPath}\\test{++_ImagesAtDestination}.png", pngBytes);
+    }
+}
 
-    //static IEnumerator GetTexture(string path)
-    //{
-    //    UnityWebRequest web = UnityWebRequestTexture.GetTexture("file:///" + path);
+class WindowWrapper : IWin32Window
+{
+    public WindowWrapper(IntPtr handle)
+    {
+        _hwnd = handle;
+    }
 
-    //    yield return web.SendWebRequest();
+    public IntPtr Handle
+    {
+        get { return _hwnd; }
+    }
 
-    //    if (web.result == UnityWebRequest.Result.Success)
-    //        _CurrentTexture = ((DownloadHandlerTexture)web.downloadHandler).texture;
-
-    //    Texture2D t;
-    //    t.LoadImage
-    //}
-
-    //static void SelectFolders()
-    //{
-    //    string path = EditorUtility.OpenFolderPanel("Load png Textures", "", "");
-    //    string[] files = Directory.GetFiles(path);
-
-    //    //foreach (string file in files)
-    //    //    if (file.EndsWith(".png"))
-    //    //        File.Copy(file, EditorApplication.currentScene);
-    //}
+    private IntPtr _hwnd;
 }

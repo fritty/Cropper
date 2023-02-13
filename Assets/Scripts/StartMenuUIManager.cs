@@ -12,7 +12,7 @@ public class StartMenuUIManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI _sourceTextUI_;
     [SerializeField] TextMeshProUGUI _destinationTextUI_;
     [SerializeField] Button _startButton_;
-    [SerializeField] SceneAsset croppingScene;
+    [SerializeField] Scene croppingScene;
 
 
     private void Start()
@@ -63,6 +63,6 @@ public class StartMenuUIManager : MonoBehaviour
         FileManager.OnSetDestination -= SetDestinationText;
         FileManager.OnFilesInitialized -= StartCropping;
 
-        SceneManager.LoadScene(croppingScene.name);
+        SceneManager.LoadScene("CroppingScene");
     }
 }

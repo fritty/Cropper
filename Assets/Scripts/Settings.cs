@@ -12,4 +12,5 @@ public class Settings : ScriptableObject
     public KeyCode Key_ExceedConstrains = KeyCode.LeftAlt;
     public KeyCode Key_RescaleImage = KeyCode.LeftControl;
     public KeyCode Key_SetSelection = KeyCode.Space;
+    public KeyCode Key_UndoSelection = KeyCode.Backspace;
 }
