@@ -47,10 +47,15 @@ public static class FileManager
             _SourcePath = path;
     }
 
-    public static void SetDestination()
+    public static void SetDestination(string path = null)
     {
-        _DestinationPath = SelectFolderPath("Select Destination Folder");//EditorUtility.OpenFolderPanel("Select Destination Folder", "", "");
-        OnSetDestination?.Invoke(_DestinationPath);
+        if (path == null || path == "")
+        {
+            _DestinationPath = SelectFolderPath("Select Destination Folder");//EditorUtility.OpenFolderPanel("Select Destination Folder", "", "");
+            OnSetDestination?.Invoke(_DestinationPath);
+        }
+        else
+            _DestinationPath = path;
     }
 
     static string SelectFolderPath(string title)
@@ -108,6 +113,17 @@ public static class FileManager
     {            
         byte[] pngBytes = sourceTexture.EncodeToPNG();
         File.WriteAllBytes($"{_DestinationPath}\\test{++_ImagesAtDestination}.png", pngBytes);
+    }
+
+    public static void SaveAsPNG(byte[] pngBytes)
+    {
+        var memoryStream = new MemoryStream(pngBytes);
+
+        using (var fileStream = new FileStream($"{_DestinationPath}\\{++_ImagesAtDestination}.png", FileMode.Create))
+        {
+            memoryStream.WriteTo(fileStream);
+            //encoder.Save(fileStream);
+        }
     }
 }
 

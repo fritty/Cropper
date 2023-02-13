@@ -29,11 +29,14 @@ public class CroppingManager : MonoBehaviour
     int _imageID;
     int _numberOfSourceImages;
 
+    Magick _imageProcessor;
+
     private void Start()
     {
         if (!FileManager.IsInitialized)
         {
-            FileManager.SetSource("F:\\Projects\\Cropper\\TestFolder\\bck");
+            FileManager.SetSource("F:\\Projects\\Cropper\\TestFolder\\in");
+            FileManager.SetDestination("F:\\Projects\\Cropper\\TestFolder\\out");
             FileManager.InitializeFiles();
         }
         _imageID = 0;
@@ -42,6 +45,8 @@ public class CroppingManager : MonoBehaviour
         _numberOfActiveFrames = 0;
         _frames = new();
         _currentFrame = GetNewFrame();
+
+        _imageProcessor = new();
 
         DisplayImage(_imageID);
     }
@@ -166,28 +171,18 @@ public class CroppingManager : MonoBehaviour
 
     void SaveSelected()
     {
+        byte[] rawData = null;
         foreach (SelectionFrame frame in _frames)
         {
             if (frame.IsActive && frame != _currentFrame)
             {
-                Texture2D resizedTexture = new(_settings_.TargetWidth, _settings_.TargetHeight);
                 float selectionScale = frame.DimensionsInScreenSpace.x / _image_.CurrentScale / _settings_.TargetWidth;
                 Vector2 selectionPosition = ToImageSpace(frame.Position);
 
-                for (int x = 0; x < _settings_.TargetWidth; x++)
-                {
-                    for (int y = 0; y < _settings_.TargetHeight; y++)
-                    {
-                        float xSource = (x - _settings_.TargetWidth / 2f) *  selectionScale + selectionPosition.x;
-                        float ySource = (y - _settings_.TargetHeight / 2f) * selectionScale + selectionPosition.y;
+                if (rawData == null)
+                    rawData = _image_.Texture.GetRawTextureData();
 
-                        Color interpolatedColor = _image_.Texture.GetPixelBilinear(xSource / _image_.Texture.width, ySource / _image_.Texture.height);
-                        resizedTexture.SetPixel(x, y, interpolatedColor);
-                    }
-                }
-                resizedTexture.Apply();
-
-                FileManager.SaveAsPNG(resizedTexture);
+                _imageProcessor.Process(new Magick.SelectedImageData(rawData, _settings_.TargetWidth, _settings_.TargetHeight, selectionScale, selectionPosition));
             }
         }
     }
