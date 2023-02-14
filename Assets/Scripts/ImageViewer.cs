@@ -37,19 +37,6 @@ public class ImageViewer : MonoBehaviour
         _rawImage_.texture = texture;
         _imageSize_ = new(texture.width, texture.height);
         Rescale(clampingRatio);
-
-        //float x = texture.width * clampingRatio;
-        //float y = texture.height * clampingRatio;
-
-        // //removing floating point error
-        //float x = _rectTransform.sizeDelta.x;
-        //x = maxWidth - x < 0.01 ? Mathf.CeilToInt(x) : x;
-        //float y = _rectTransform.sizeDelta.y;
-        //y = maxHeight - y < 0.01 ? Mathf.CeilToInt(y) : y;
-
-        //_rectTransform.sizeDelta = new Vector2(x, y);
-        
-        //_currentScale = clampingRatio;
     }
 
     public void Rescale(float newScale)

@@ -14,8 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TargetWidth: 512
   TargetHeight: 512
-  Key_NextImage: 275
-  Key_PreviousImage: 276
+  Key_NextImage: 100
+  Key_PreviousImage: 97
   Key_SlowScrolling: 304
   Key_ExceedConstrains: 308
   Key_RescaleImage: 306
+  Key_SetSelection: 32
+  Key_UndoSelection: 8

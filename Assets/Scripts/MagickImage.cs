@@ -1,36 +1,21 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 using ImageMagick;
 using System.Threading;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Drawing;
 
-public class Magick
+public class ImageProcessor
 {
     private readonly ConcurrentQueue<SelectedImageData> _requestQueue;
     private readonly Thread _thread;
     private readonly AutoResetEvent _resetEvent;
 
-    public Magick()
+    public ImageProcessor()
     {
         _requestQueue = new ConcurrentQueue<SelectedImageData>();
         _resetEvent = new AutoResetEvent(false);
         _thread = new Thread(ProcessingThread);
         _thread.Start();
     }
-
-    //public static byte[] Resize(byte[] textureByteArray, int width, int height)
-    //{
-    //    byte[] data;
-    //    using (MagickImage image = new MagickImage(textureByteArray))
-    //    {
-    //        image.Resize(width, height);
-    //        data = image.ToByteArray(MagickFormat.Png);
-    //    }
-    //    return data;
-    //}
 
     public void Process(SelectedImageData data)
     {
@@ -41,11 +26,10 @@ public class Magick
     static byte[] Resize(SelectedImageData data, int selectionWidth, int selectionHeight, int xPosition, int yPosition)
     {
         byte[] outputData;
-        //Bitmap b;
 
         using (MagickImage image = new MagickImage(data.RawTextureData))
         {
-            image.Crop(new MagickGeometry(xPosition, yPosition, selectionWidth, selectionHeight));
+            image.Crop(new MagickGeometry(xPosition, image.Height - (yPosition + selectionHeight), selectionWidth, selectionHeight));
             image.RePage();
             image.Resize(data.TargetWidth, data.TargetHeight);
             outputData = image.ToByteArray(MagickFormat.Png);
@@ -74,7 +58,6 @@ public class Magick
 
     public struct SelectedImageData
     {
-        //public Texture2D Texture;
         public byte[] RawTextureData;
         public int TargetWidth; 
         public int TargetHeight;
@@ -83,7 +66,6 @@ public class Magick
 
         public SelectedImageData(byte[] rawTextureData, int targetWidth, int targetHeight, float selectionScale, Vector2 selectionPosition)
         {
-            //Texture = texture;
             RawTextureData = rawTextureData;
             TargetWidth = targetWidth;
             TargetHeight = targetHeight;

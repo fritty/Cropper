@@ -29,9 +29,10 @@ public static class FileManager
     static string _DestinationPath;
 
     static List<string> _SourceFilePaths;
-    static string[] _DestinationFilePaths;
+    //static string[] _DestinationFilePaths;
 
     static int _ImagesAtDestination;
+    static string _persistentPath;
 
     [DllImport("user32.dll")]
     static extern IntPtr GetActiveWindow();
@@ -40,7 +41,7 @@ public static class FileManager
     {
         if (path == null || path == "")
         {
-            _SourcePath = SelectFolderPath("Select Source Folder");//EditorUtility.OpenFolderPanel("Select Source Folder", "", "");
+            _SourcePath = SelectFolderPath("Select Source Folder");
             OnSetSource?.Invoke(_SourcePath);
         }
         else
@@ -51,7 +52,7 @@ public static class FileManager
     {
         if (path == null || path == "")
         {
-            _DestinationPath = SelectFolderPath("Select Destination Folder");//EditorUtility.OpenFolderPanel("Select Destination Folder", "", "");
+            _DestinationPath = SelectFolderPath("Select Destination Folder");
             OnSetDestination?.Invoke(_DestinationPath);
         }
         else
@@ -95,6 +96,9 @@ public static class FileManager
         }
         else
             Debug.LogWarning("No images in folder " + _SourcePath);
+
+        _persistentPath = UnityEngine.Application.persistentDataPath;
+        //Debug.Log(_persistentPath);
     }
 
     public static Texture LoadTexture(int id)
@@ -117,12 +121,11 @@ public static class FileManager
 
     public static void SaveAsPNG(byte[] pngBytes)
     {
-        var memoryStream = new MemoryStream(pngBytes);
+        var path = $"{_DestinationPath}\\{++_ImagesAtDestination}.png";
 
-        using (var fileStream = new FileStream($"{_DestinationPath}\\{++_ImagesAtDestination}.png", FileMode.Create))
+        using (var fileStream = File.Create(path))
         {
-            memoryStream.WriteTo(fileStream);
-            //encoder.Save(fileStream);
+            fileStream.Write(pngBytes);
         }
     }
 }

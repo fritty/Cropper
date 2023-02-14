@@ -29,7 +29,7 @@ public class CroppingManager : MonoBehaviour
     int _imageID;
     int _numberOfSourceImages;
 
-    Magick _imageProcessor;
+    ImageProcessor _imageProcessor;
 
     private void Start()
     {
@@ -180,9 +180,9 @@ public class CroppingManager : MonoBehaviour
                 Vector2 selectionPosition = ToImageSpace(frame.Position);
 
                 if (rawData == null)
-                    rawData = _image_.Texture.GetRawTextureData();
+                    rawData = _image_.Texture.EncodeToPNG(); // Ideally it should use GetRawTextureData() and convert that to sensible format on a processing thread. But there are compatibility issues rn
 
-                _imageProcessor.Process(new Magick.SelectedImageData(rawData, _settings_.TargetWidth, _settings_.TargetHeight, selectionScale, selectionPosition));
+                _imageProcessor.Process(new ImageProcessor.SelectedImageData(rawData, _settings_.TargetWidth, _settings_.TargetHeight, selectionScale, selectionPosition));
             }
         }
     }
