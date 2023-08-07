@@ -31,7 +31,11 @@ public class ImageProcessor
         {
             image.Crop(new MagickGeometry(xPosition, image.Height - (yPosition + selectionHeight), selectionWidth, selectionHeight));
             image.RePage();
-            image.Resize(data.TargetWidth, data.TargetHeight);
+            var targetGeometry = new MagickGeometry(data.TargetWidth, data.TargetHeight)
+            {
+                IgnoreAspectRatio = true
+            };
+            image.Resize(targetGeometry);//Resize(data.TargetWidth, data.TargetHeight);
             outputData = image.ToByteArray(MagickFormat.Png);
         }
         return outputData;

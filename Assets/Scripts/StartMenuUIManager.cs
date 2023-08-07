@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 
 public class StartMenuUIManager : MonoBehaviour
 {
+    [SerializeField] Settings _settings_;
     [SerializeField] TextMeshProUGUI _sourceTextUI_;
     [SerializeField] TextMeshProUGUI _destinationTextUI_;
     [SerializeField] Button _startButton_;
@@ -19,6 +20,14 @@ public class StartMenuUIManager : MonoBehaviour
         SetSourceText(null);
         SetDestinationText(null);
         _startButton_.gameObject.SetActive(false);
+
+        _settings_.Resolutions = new Settings.Resolution[4];
+
+        for (int i = 0; i < 4; i++)
+        {
+            _settings_.Resolutions[i] = new(512 + (i >> 1) * 256, 512 + (i - (i >> 1)*2) * 256);
+        }
+        _settings_.ActiveResolution = _settings_.Resolutions[0];
 
         FileManager.OnSetSource += SetSourceText;
         FileManager.OnSetDestination += SetDestinationText;

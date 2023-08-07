@@ -4,6 +4,7 @@ public class SelectionFrame : MonoBehaviour
 {
     public Vector2 Position { get { return _lineTransform.anchoredPosition; } set { _lineTransform.anchoredPosition = value; } }
     public Vector2 DimensionsInScreenSpace { get { return _lineTransform.localScale; } set { _lineTransform.localScale = value; } }
+    public Vector2Int TargetResolution;
     public Color Color { get { return _mainRenderer_.startColor; } set { _mainRenderer_.startColor = value; _mainRenderer_.endColor = value; } }
     public bool IsActive => gameObject.activeSelf;
 

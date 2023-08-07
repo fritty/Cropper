@@ -34,6 +34,7 @@ public class ImageViewer : MonoBehaviour
 
         float clampingRatio = 1f / Mathf.Max(texture.width / maxWidth, texture.height / maxHeight, 1);
 
+        Destroy(_rawImage_.texture);
         _rawImage_.texture = texture;
         _imageSize_ = new(texture.width, texture.height);
         Rescale(clampingRatio);

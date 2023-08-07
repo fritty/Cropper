@@ -813,6 +813,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64901605599d30e4d9ffc2ef8269672b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _settings_: {fileID: 11400000, guid: 3c21e8024e0d33541965e732be4ca105, type: 2}
   _sourceTextUI_: {fileID: 1776879476}
   _destinationTextUI_: {fileID: 170309891}
   _startButton_: {fileID: 2070652157}

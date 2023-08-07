@@ -20,6 +20,7 @@ public class CroppingManager : MonoBehaviour
     [SerializeField] TextMeshProUGUI _counterText_;
     [SerializeField] TextMeshProUGUI _ratiosText_;
     [SerializeField] TextMeshProUGUI _ratiosText2_;
+    [SerializeField] TextMeshProUGUI _resolutionText_;
 
     SelectionFrame _currentFrame;
     float _scalingSpeed = 0.1f;
@@ -30,6 +31,8 @@ public class CroppingManager : MonoBehaviour
     int _numberOfSourceImages;
 
     ImageProcessor _imageProcessor;
+
+    bool _targetResolutionChanged_;
 
     private void Start()
     {
@@ -53,6 +56,7 @@ public class CroppingManager : MonoBehaviour
 
     private void Update()
     {
+        SetTargetResolution();
         ScrollThroughImages();
         //ScaleImage();
         ScaleSelectionFrame();
@@ -64,6 +68,32 @@ public class CroppingManager : MonoBehaviour
 
         if (Input.GetKeyDown(_settings_.Key_UndoSelection))
             RemoveLastSetFrame();
+    }
+
+    void SetTargetResolution()
+    {
+        _targetResolutionChanged_ = true;
+        if (Input.GetKeyDown(_settings_.Key_SelectResolution1)) 
+        {
+            _settings_.ActiveResolution = _settings_.Resolutions[0];
+            return;
+        }
+        if (Input.GetKeyDown(_settings_.Key_SelectResolution2))
+        {
+            _settings_.ActiveResolution = _settings_.Resolutions[1];
+            return;
+        }
+        if (Input.GetKeyDown(_settings_.Key_SelectResolution3))
+        {
+            _settings_.ActiveResolution = _settings_.Resolutions[2];
+            return;
+        }
+        if (Input.GetKeyDown(_settings_.Key_SelectResolution4))
+        {
+            _settings_.ActiveResolution = _settings_.Resolutions[3];
+            return;
+        }
+        _targetResolutionChanged_ = false;
     }
 
     SelectionFrame GetNewFrame()
@@ -86,6 +116,7 @@ public class CroppingManager : MonoBehaviour
             _numberOfActiveFrames--;
             _currentFrame = _frames[_numberOfActiveFrames-1];
             _currentFrame.SetAsCurrent(true);
+            _currentFrame.TargetResolution = new(_settings_.ActiveResolution.Width, _settings_.ActiveResolution.Height);
             RescaleFrameRelativeToTarget(1, false);
             UpdateFrameColor(1);
         }
@@ -95,7 +126,8 @@ public class CroppingManager : MonoBehaviour
     {
         SelectionFrame frame = Instantiate(_framePrefab_);
         frame.SetParent(_canvas_.transform);
-        frame.DimensionsInScreenSpace = new(_settings_.TargetWidth * _image_.CurrentScale, _settings_.TargetHeight * _image_.CurrentScale);
+        frame.TargetResolution = new(_settings_.ActiveResolution.Width, _settings_.ActiveResolution.Height);
+        frame.DimensionsInScreenSpace = (Vector2)frame.TargetResolution * _image_.CurrentScale;
         frame.SetAsCurrent(true);
         _frames.Add(frame);
         _numberOfActiveFrames++;
@@ -108,6 +140,24 @@ public class CroppingManager : MonoBehaviour
 
         _currentFrame.SetAsCurrent(false);
         _currentFrame = GetNewFrame();
+    }
+
+    void SaveSelected()
+    {
+        byte[] rawData = null;
+        foreach (SelectionFrame frame in _frames)
+        {
+            if (frame.IsActive && frame != _currentFrame)
+            {
+                float selectionScale = frame.DimensionsInScreenSpace.x / _image_.CurrentScale / frame.TargetResolution.x;
+                Vector2 selectionPosition = ToImageSpace(frame.Position);
+
+                if (rawData == null)
+                    rawData = _image_.Texture.EncodeToPNG(); // Ideally it should use GetRawTextureData() and convert that to sensible format on a processing thread. But there are compatibility issues
+
+                _imageProcessor.Process(new ImageProcessor.SelectedImageData(rawData, frame.TargetResolution.x, frame.TargetResolution.y, selectionScale, selectionPosition));
+            }
+        }
     }
 
     void ScrollThroughImages()
@@ -137,15 +187,18 @@ public class CroppingManager : MonoBehaviour
 
         float newScale = _image_.CurrentScale * (1 + Input.mouseScrollDelta.y * _scalingSpeed);
         _image_.Rescale(newScale);
-        UpdateFrameColor(_currentFrame.DimensionsInScreenSpace.x / _image_.CurrentScale / _settings_.TargetWidth);
+        UpdateFrameColor(_currentFrame.DimensionsInScreenSpace.x / _image_.CurrentScale / _settings_.ActiveResolution.Width);
         UpdateImageRatiosText();
     }
 
     void ScaleSelectionFrame()
     {
-        if (Input.mouseScrollDelta.y == 0 || Input.GetKey(_settings_.Key_RescaleImage)) return;
+        if ((Input.mouseScrollDelta.y == 0 || Input.GetKey(_settings_.Key_RescaleImage)) && !_targetResolutionChanged_) return;
 
-        float desiredScale = _currentFrame.DimensionsInScreenSpace.x / (_settings_.TargetWidth * _image_.CurrentScale);
+        if (_targetResolutionChanged_)
+            _currentFrame.TargetResolution = new(_settings_.ActiveResolution.Width, _settings_.ActiveResolution.Height);
+
+        float desiredScale = _currentFrame.DimensionsInScreenSpace.x / (_settings_.ActiveResolution.Width * _image_.CurrentScale);
 
         if (Input.GetKey(_settings_.Key_SlowScrolling))
             desiredScale += Input.mouseScrollDelta.y * _scalingSpeed / _image_.CurrentScale / 10;
@@ -169,31 +222,13 @@ public class CroppingManager : MonoBehaviour
         _currentFrame.Position = new(position.x, position.y);
     }
 
-    void SaveSelected()
-    {
-        byte[] rawData = null;
-        foreach (SelectionFrame frame in _frames)
-        {
-            if (frame.IsActive && frame != _currentFrame)
-            {
-                float selectionScale = frame.DimensionsInScreenSpace.x / _image_.CurrentScale / _settings_.TargetWidth;
-                Vector2 selectionPosition = ToImageSpace(frame.Position);
-
-                if (rawData == null)
-                    rawData = _image_.Texture.EncodeToPNG(); // Ideally it should use GetRawTextureData() and convert that to sensible format on a processing thread. But there are compatibility issues rn
-
-                _imageProcessor.Process(new ImageProcessor.SelectedImageData(rawData, _settings_.TargetWidth, _settings_.TargetHeight, selectionScale, selectionPosition));
-            }
-        }
-    }
-
     void DisplayImage(int id)
     {
         _counterText_.text = $"{id + 1} / {_numberOfSourceImages}";
         if (id < _numberOfSourceImages)
         {
             _image_.DisplayNewTexture(FileManager.LoadTexture(id));
-            _currentFrame.DimensionsInScreenSpace = new(_image_.CurrentScale * _settings_.TargetWidth, _image_.CurrentScale * _settings_.TargetHeight);
+            _currentFrame.DimensionsInScreenSpace = new(_image_.CurrentScale * _settings_.ActiveResolution.Width, _image_.CurrentScale * _settings_.ActiveResolution.Height);
             UpdateFrameRatiosText();
             UpdateImageRatiosText();
         }
@@ -205,7 +240,7 @@ public class CroppingManager : MonoBehaviour
         Vector2 screenScale = new(Mathf.Round(_currentFrame.DimensionsInScreenSpace.x) /* 10)/10f*/, Mathf.Round(_currentFrame.DimensionsInScreenSpace.y) /* 10)/10f*/);
         _ratiosText_.text = $"Frame\nin image pixels: {pixelScale.x}/{pixelScale.y}\n" +
                 $"in screen pixels: {screenScale.x}/{screenScale.y}\n" +
-                $"ratio {_currentFrame.DimensionsInScreenSpace.x / _currentFrame.DimensionsInScreenSpace.y}. scale to target: {Mathf.Round(pixelScale.x * 100 / _settings_.TargetWidth) / 100f}";
+                $"ratio {_currentFrame.DimensionsInScreenSpace.x / _currentFrame.DimensionsInScreenSpace.y}. scale to target: {Mathf.Round(pixelScale.x * 100 / _settings_.ActiveResolution.Width) / 100f}";
     }
 
     void UpdateImageRatiosText()
@@ -216,8 +251,8 @@ public class CroppingManager : MonoBehaviour
 
     void RescaleFrameRelativeToTarget(float scale, bool exceedConstrains)
     {
-        float desiredWidth = _settings_.TargetWidth * scale;
-        float desiredHeight = _settings_.TargetHeight * scale;
+        float desiredWidth = _settings_.ActiveResolution.Width * scale;
+        float desiredHeight = _settings_.ActiveResolution.Height * scale;
 
         bool restricted = !Input.GetKey(_settings_.Key_ExceedConstrains);
 
@@ -225,19 +260,19 @@ public class CroppingManager : MonoBehaviour
         Vector2 maxSize = new(_canvas_.pixelRect.width / _image_.CurrentScale, _canvas_.pixelRect.height / _image_.CurrentScale);
         if (restricted)
         {
-            minSize = new(Mathf.Min(maxSize.x, _settings_.TargetWidth), Mathf.Min(maxSize.y, _settings_.TargetHeight));
+            minSize = new(Mathf.Min(maxSize.x, _settings_.ActiveResolution.Width), Mathf.Min(maxSize.y, _settings_.ActiveResolution.Height));
             maxSize = new(Mathf.Min(maxSize.x, _image_.ImageSize.x), Mathf.Min(maxSize.y, _image_.ImageSize.y));
         }
         float newWidth = Mathf.Clamp(desiredWidth, minSize.x, maxSize.x);
         float newHeight = Mathf.Clamp(desiredHeight, minSize.y, maxSize.y);
 
-        float newScale = Mathf.Min(newWidth / _settings_.TargetWidth, newHeight / _settings_.TargetHeight);
+        float newScale = Mathf.Min(newWidth / _settings_.ActiveResolution.Width, newHeight / _settings_.ActiveResolution.Height);
 
-        newWidth = newScale * _settings_.TargetWidth;
-        newHeight = newScale * _settings_.TargetHeight;
+        newWidth = newScale * _settings_.ActiveResolution.Width;
+        newHeight = newScale * _settings_.ActiveResolution.Height;
 
         _currentFrame.DimensionsInScreenSpace = new(newWidth * _image_.CurrentScale, newHeight * _image_.CurrentScale);
-        UpdateFrameColor(newWidth / _settings_.TargetWidth);
+        UpdateFrameColor(newWidth / _settings_.ActiveResolution.Width);
         UpdateFrameRatiosText();
     }
 
